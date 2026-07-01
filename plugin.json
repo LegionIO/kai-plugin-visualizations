@@ -1,0 +1,60 @@
+{
+  "name": "visualizations",
+  "displayName": "Visualizations",
+  "version": "0.1.0",
+  "description": "AI-driven diagram & chart authoring. Generate and iterate on ERDs, architecture diagrams, flowcharts, and data charts through natural-language chat, rendered live with Mermaid and Chart.js.",
+  "icon": { "lucide": "workflow" },
+  "author": "Kyle Boyer <https://github.com/KyleBoyer>",
+  "permissions": [
+    "config:read",
+    "config:write",
+    "state:publish",
+    "ui:panel",
+    "ui:navigation",
+    "ui:settings",
+    "agent:generate",
+    "tools:register",
+    "notifications:send"
+  ],
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "projects": {
+        "type": "object",
+        "description": "Project metadata index keyed by project id"
+      },
+      "activeProjectId": { "type": ["string", "null"] },
+      "navStack": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "focusNode": { "type": "string" }
+          },
+          "required": ["id"]
+        }
+      },
+      "defaults": {
+        "type": "object",
+        "properties": {
+          "engine": {
+            "type": "string",
+            "enum": ["mermaid", "chartjs"],
+            "default": "mermaid",
+            "description": "Default engine for new projects"
+          },
+          "modelOverride": {
+            "type": "string",
+            "description": "Optional model key to use for diagram generation"
+          },
+          "maxHistoryMessages": {
+            "type": "number",
+            "default": 40,
+            "description": "How many recent chat messages to include in the AI context"
+          }
+        }
+      }
+    }
+  }
+}

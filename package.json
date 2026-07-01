@@ -1,0 +1,23 @@
+{
+  "name": "kai-visualizations-plugin",
+  "version": "0.1.0",
+  "author": "Kyle Boyer <https://github.com/KyleBoyer>",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "dev": "node esbuild.config.mjs --dev --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "chart.js": "^4.4.3",
+    "dompurify": "^3.4.11",
+    "mermaid": "^11.4.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.0"
+  }
+}
