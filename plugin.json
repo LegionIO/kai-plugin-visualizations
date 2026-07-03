@@ -1,9 +1,11 @@
 {
   "name": "visualizations",
   "displayName": "Visualizations",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "AI-driven diagram & chart authoring. Generate and iterate on ERDs, architecture diagrams, flowcharts, and data charts through natural-language chat, rendered live with Mermaid and Chart.js.",
-  "icon": { "lucide": "workflow" },
+  "icon": {
+    "lucide": "workflow"
+  },
   "author": "Kyle Boyer <https://github.com/KyleBoyer>",
   "permissions": [
     "config:read",
@@ -24,16 +26,27 @@
         "type": "object",
         "description": "Project metadata index keyed by project id"
       },
-      "activeProjectId": { "type": ["string", "null"] },
+      "activeProjectId": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
       "navStack": {
         "type": "array",
         "items": {
           "type": "object",
           "properties": {
-            "id": { "type": "string" },
-            "focusNode": { "type": "string" }
+            "id": {
+              "type": "string"
+            },
+            "focusNode": {
+              "type": "string"
+            }
           },
-          "required": ["id"]
+          "required": [
+            "id"
+          ]
         }
       },
       "defaults": {
@@ -41,7 +54,10 @@
         "properties": {
           "engine": {
             "type": "string",
-            "enum": ["mermaid", "chartjs"],
+            "enum": [
+              "mermaid",
+              "chartjs"
+            ],
             "default": "mermaid",
             "description": "Default engine for new projects"
           },
