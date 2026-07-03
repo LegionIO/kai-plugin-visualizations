@@ -163,6 +163,15 @@ export type PluginAPI = {
     set: (path: string, value: unknown) => void;
     emitEvent: (eventName: string, data?: unknown) => void;
   };
+  /** Automation event bus (kai-desktop ≥ 1.0.121). */
+  events?: {
+    declare: (decl: {
+      events?: Array<{ event: string; title: string; description?: string; payloadSchema?: Record<string, unknown> }>;
+      actions?: Array<{ targetId: string; title: string; description?: string; inputSchema?: Record<string, unknown> }>;
+    }) => void;
+    emit: (event: string, payload?: unknown) => void;
+    on: (key: string, handler: (event: unknown) => void) => () => void;
+  };
   tools: {
     register: (tools: ToolDefinition[]) => void;
     unregister: (toolNames: string[]) => void;

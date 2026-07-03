@@ -477,6 +477,69 @@ export async function activate(api: PluginAPI): Promise<void> {
   });
   api.ui.registerSettingsView({ id: SETTINGS_ID, label: 'Visualizations' });
 
+  try {
+    api.events?.declare({
+      events: [
+        {
+          event: 'visualization.created',
+          title: 'Visualization created',
+          description: 'A new diagram/chart project was created (or duplicated).',
+          payloadSchema: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              name: { type: 'string' },
+              engine: { type: 'string', enum: ['mermaid', 'chartjs'] },
+              duplicatedFrom: { type: 'string', description: 'Source project id when created via duplicate.' },
+            },
+          },
+        },
+        {
+          event: 'visualization.updated',
+          title: 'Visualization updated',
+          description:
+            'A new revision was committed to a diagram/chart. Does not fire on undo/redo/checkout (head moves to an existing revision) or fragment create/rename (no new revision).',
+          payloadSchema: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              name: { type: 'string' },
+              engine: { type: 'string', enum: ['mermaid', 'chartjs'] },
+              revisionId: { type: 'string' },
+              author: { type: 'string', enum: ['ai', 'user', 'tool'] },
+            },
+          },
+        },
+        {
+          event: 'visualization.renamed',
+          title: 'Visualization renamed',
+          payloadSchema: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              name: { type: 'string' },
+              previousName: { type: 'string' },
+            },
+          },
+        },
+        {
+          event: 'visualization.deleted',
+          title: 'Visualization deleted',
+          payloadSchema: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              name: { type: 'string' },
+              engine: { type: 'string', enum: ['mermaid', 'chartjs'] },
+            },
+          },
+        },
+      ],
+    });
+  } catch (err) {
+    api.log.warn('events.declare unavailable:', err);
+  }
+
   api.onAction(`panel:${PANEL_ID}`, (action, data) => handlePanelAction(action, data));
   // Kai routes settings actions by registered component name, not descriptor id
   // (see kai-desktop PluginSettingsModal: `settings:${pluginSection.component}`).

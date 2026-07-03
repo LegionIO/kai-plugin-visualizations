@@ -62,6 +62,14 @@ export class VizStorage {
     this.dataDir = join(appHome, 'data', api.pluginName);
   }
 
+  private emit(event: string, payload: Record<string, unknown>): void {
+    try {
+      this.api.events?.emit(event, payload);
+    } catch (err) {
+      this.api.log.warn(`events.emit(${event}) failed:`, err);
+    }
+  }
+
   /* ── Project meta (config) ── */
 
   getProjects(): Record<string, ProjectMeta> {
@@ -103,6 +111,7 @@ export class VizStorage {
       revisions: [],
       fragments: [newFragment('main', source)],
     });
+    this.emit('visualization.created', { id: meta.id, name: meta.name, engine: meta.engine });
     return meta;
   }
 
@@ -121,11 +130,15 @@ export class VizStorage {
     };
     projects[id] = next;
     this.api.config.setPluginData('projects', projects);
+    if (patch.name !== undefined && patch.name !== existing.name) {
+      this.emit('visualization.renamed', { id, name: next.name, previousName: existing.name });
+    }
     return next;
   }
 
   deleteProject(id: string): void {
-    if (!this.getProject(id)) return;
+    const existing = this.getProject(id);
+    if (!existing) return;
     const projects = this.getProjects();
     delete projects[id];
     this.api.config.setPluginData('projects', projects);
@@ -142,6 +155,7 @@ export class VizStorage {
     }
     const stack = this.getNavStack().filter((e) => e.id !== id);
     this.setNavStack(stack);
+    this.emit('visualization.deleted', { id, name: existing.name, engine: existing.engine });
   }
 
   /* ── Project data (filesystem) ── */
@@ -242,6 +256,13 @@ export class VizStorage {
       : decomposeFragments(rev.source, data.fragments);
     this.writeProjectData(id, data);
     this.updateProject(id, { engine: rev.engine, source: rev.source, headRevisionId: full.id });
+    this.emit('visualization.updated', {
+      id,
+      name: meta.name,
+      engine: rev.engine,
+      revisionId: full.id,
+      author: rev.author,
+    });
     return full;
   }
 
@@ -287,6 +308,12 @@ export class VizStorage {
     projects[copy.id] = copy;
     this.api.config.setPluginData('projects', projects);
     this.writeProjectData(copy.id, this.readProjectData(id));
+    this.emit('visualization.created', {
+      id: copy.id,
+      name: copy.name,
+      engine: copy.engine,
+      duplicatedFrom: src.id,
+    });
     return copy;
   }
 
