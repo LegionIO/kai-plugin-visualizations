@@ -1,6 +1,6 @@
 {
   "name": "kai-visualizations-plugin",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": "Kyle Boyer <https://github.com/KyleBoyer>",
   "private": true,
   "type": "module",
