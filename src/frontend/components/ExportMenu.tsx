@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { Engine } from '../../shared/types.js';
 import type { CanvasHandle } from './DiagramCanvas';
+import { svgToPng } from '../render-core';
 
 type Props = {
   name: string;
@@ -21,58 +22,6 @@ function download(filename: string, blob: Blob) {
 
 function slug(s: string): string {
   return s.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'diagram';
-}
-
-function intrinsicSize(svgEl: SVGSVGElement): { w: number; h: number } {
-  const vb = svgEl.viewBox?.baseVal;
-  if (vb && vb.width > 0 && vb.height > 0) return { w: vb.width, h: vb.height };
-  try {
-    const bb = svgEl.getBBox();
-    if (bb.width > 0 && bb.height > 0) return { w: bb.width, h: bb.height };
-  } catch {
-    /* getBBox can throw on detached SVG */
-  }
-  const r = svgEl.getBoundingClientRect();
-  return { w: r.width || 1, h: r.height || 1 };
-}
-
-async function svgToPng(svgEl: SVGSVGElement, scale = 2): Promise<Blob> {
-  const clone = svgEl.cloneNode(true) as SVGSVGElement;
-  const { w: iw, h: ih } = intrinsicSize(svgEl);
-  const w = Math.max(1, Math.round(iw));
-  const h = Math.max(1, Math.round(ih));
-  clone.setAttribute('width', String(w));
-  clone.setAttribute('height', String(h));
-  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-  const xml = new XMLSerializer().serializeToString(clone);
-  const svgBlob = new Blob([xml], { type: 'image/svg+xml;charset=utf-8' });
-  const url = URL.createObjectURL(svgBlob);
-  try {
-    const img = new Image();
-    await new Promise<void>((res, rej) => {
-      const t = setTimeout(() => rej(new Error('SVG rasterization timed out')), 10000);
-      img.onload = () => {
-        clearTimeout(t);
-        res();
-      };
-      img.onerror = () => {
-        clearTimeout(t);
-        rej(new Error('Failed to load SVG as image'));
-      };
-      img.src = url;
-    });
-    const canvas = document.createElement('canvas');
-    canvas.width = w * scale;
-    canvas.height = h * scale;
-    const ctx = canvas.getContext('2d')!;
-    ctx.scale(scale, scale);
-    ctx.drawImage(img, 0, 0);
-    return await new Promise<Blob>((res, rej) =>
-      canvas.toBlob((b) => (b ? res(b) : rej(new Error('toBlob failed'))), 'image/png'),
-    );
-  } finally {
-    URL.revokeObjectURL(url);
-  }
 }
 
 export function ExportMenu({ name, engine, source, canvasRef, previewMounted }: Props) {

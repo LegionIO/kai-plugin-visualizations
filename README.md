@@ -11,7 +11,8 @@ AI-driven diagram & chart authoring for Kai Desktop. Describe what you want in n
 - **Duplicate** — clone a project (source + chat + full revision tree) from the sidebar or toolbar
 - **Deep links** — click a node in one diagram to jump into another project; breadcrumbs to navigate back
 - **Export** — SVG, PNG, or raw source
-- **AI tools** — Kai's main assistant can list, search, create, read, update, and delete visualizations from any conversation
+- **AI tools** — Kai's main assistant can list, search, create, read, update, delete, and **export** visualizations from any conversation
+- **Show the AI the picture** — the `viz_export_project` tool renders a project to a real image and hands it back to the assistant inline, so it can actually *see* the rendered diagram/chart (not just the source), and/or save it to a file. Rendering happens headlessly in a hidden window — nothing is shown to the user. Exports match the workspace style by default; pass `style: "neo"` (polished dark neon) or `style: "plain"` (clean classic on light) to override.
 
 ## Deep linking
 
@@ -60,6 +61,10 @@ npm run dev   # watches src/, writes to ~/.kai/plugins/visualizations/
 ```
 
 Restart Kai Desktop (or reload plugins) to pick up backend changes; frontend hot-reloads on state republish.
+
+## Security notes (export)
+
+`viz_export_project` renders diagram/chart source in a hidden window under a strict CSP (`default-src 'none'`, `connect-src 'none'`, `img-src data: blob:`) so a diagram can't fetch during rendering, and file writes reject symlinks, refuse to clobber non-matching files, and use an atomic temp-then-rename. The diagram author is normally the user; we do **not** model the mermaid/Chart.js source as a sandbox-escape adversary. The exported-SVG sanitizer scrubs the common external-reference forms (`url()`, `@import`, `image-set()`, incl. CSS-escape and quoted variants) but is not a hardened CSS parser, so a determined attacker who fully controls the source could craft an SVG that attempts a network fetch when opened in a permissive external viewer. Prefer PNG export (fully rasterized, no live references) when sharing untrusted diagrams.
 
 ## Release
 

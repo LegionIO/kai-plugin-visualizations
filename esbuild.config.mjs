@@ -109,6 +109,18 @@ const frontendOptions = {
   plugins: [reactGlobalPlugin],
 };
 
+// Standalone browser bundle loaded into a hidden BrowserWindow for headless
+// export. Self-contained (bundles mermaid/chart.js/dompurify); no React.
+const renderOptions = {
+  ...shared,
+  entryPoints: ['./src/render/index.ts'],
+  platform: 'browser',
+  outfile: resolve(outputDir, 'render.js'),
+  target: 'es2020',
+  mainFields: ['browser', 'module', 'main'],
+  conditions: ['browser', 'import', 'default'],
+};
+
 mkdirSync(outputDir, { recursive: true });
 
 copyFileSync(
@@ -119,17 +131,19 @@ copyFileSync(
 if (isWatch) {
   const backendCtx = await esbuild.context(backendOptions);
   const frontendCtx = await esbuild.context(frontendOptions);
-  await Promise.all([backendCtx.watch(), frontendCtx.watch()]);
+  const renderCtx = await esbuild.context(renderOptions);
+  await Promise.all([backendCtx.watch(), frontendCtx.watch(), renderCtx.watch()]);
   console.log(`Watching for changes... (output: ${outputDir})`);
 } else {
   await Promise.all([
     esbuild.build(backendOptions),
     esbuild.build(frontendOptions),
+    esbuild.build(renderOptions),
   ]).catch(() => process.exit(1));
 
   if (isDev) {
     console.log(`Built to ~/.kai/plugins/${pluginName}/`);
   } else {
-    console.log('Built backend.js and frontend.js to dist/');
+    console.log('Built backend.js, frontend.js and render.js to dist/');
   }
 }

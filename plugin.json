@@ -17,7 +17,8 @@
     "ui:settings",
     "agent:generate",
     "tools:register",
-    "notifications:send"
+    "notifications:send",
+    "auth:window"
   ],
   "configSchema": {
     "type": "object",

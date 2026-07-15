@@ -147,6 +147,34 @@ export type ToolDefinition = {
   execute: (input: unknown, context?: unknown) => Promise<unknown>;
 };
 
+/** Helpers handed to onReady for driving an (optionally hidden) auth window. */
+export type AuthWindowHelpers = {
+  executeJavaScript: (code: string) => Promise<unknown>;
+  getURL: () => string;
+  onDidNavigate: (cb: (url: string) => void) => void;
+  show: () => void;
+  hide: () => void;
+  close: () => void;
+};
+
+export type AuthWindowOptions = {
+  url: string;
+  callbackMatch?: string;
+  title?: string;
+  width?: number;
+  height?: number;
+  timeoutMs?: number;
+  showOnCreate?: boolean;
+  showAfterMs?: number;
+  onReady?: (helpers: AuthWindowHelpers) => void;
+};
+
+export type AuthWindowResult = {
+  success: boolean;
+  params?: Record<string, string>;
+  error?: string;
+};
+
 export type PluginAPI = {
   pluginName: string;
   pluginDir: string;
@@ -187,6 +215,10 @@ export type PluginAPI = {
   };
   agent: {
     generate: (options: PluginAgentGenerateOptions) => Promise<PluginAgentGenerateResult>;
+  };
+  /** Opens a Chromium window (optionally hidden) the plugin can drive via onReady. */
+  auth?: {
+    openAuthWindow: (options: AuthWindowOptions) => Promise<AuthWindowResult>;
   };
   log: {
     info: (...args: unknown[]) => void;
