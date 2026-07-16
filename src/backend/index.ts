@@ -555,7 +555,21 @@ export async function activate(api: PluginAPI): Promise<void> {
         inflight.delete(id);
       },
     }),
-    ...buildFragTools(),
+    ...buildFragTools((projectId) => {
+      // No live edit session (e.g. validate/list/read/grep called outside a
+      // generation turn): serve a transient, committed-source view from storage.
+      const project = storage?.getProject(projectId);
+      if (!storage || !project) return undefined;
+      const data = storage.readProjectData(projectId);
+      return {
+        projectId,
+        engine: project.engine,
+        fragments: data.fragments.map((f) => ({ ...f })),
+        dirty: false,
+        log: [],
+        committed: true,
+      };
+    }),
   ]);
 
   publishState();

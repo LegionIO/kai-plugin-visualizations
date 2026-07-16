@@ -14,7 +14,20 @@ export type FragSession = {
   dirty: boolean;
   log: string[];
   lastValidation?: ValidationResult;
+  /**
+   * True for transient sessions built from committed project data when no live
+   * edit session is open (see FragSessionResolver). Used only to tell callers
+   * whether a read reflects this turn's staged edits or the saved diagram.
+   */
+  committed?: boolean;
 };
+
+/**
+ * Builds a transient session from committed project storage when no live edit
+ * session is open. Lets inspection tools (list/read/grep/validate) work outside
+ * an agent turn by reading the saved diagram.
+ */
+export type FragSessionResolver = (projectId: string) => FragSession | undefined;
 
 async function validateSession(s: FragSession): Promise<ValidationResult> {
   const result = await validateSource(s.engine, composeFragments(s.fragments));
@@ -84,7 +97,24 @@ export const FRAG_TOOL_NAMES = [
   'viz_frag_validate',
 ] as const;
 
-export function buildFragTools(): ToolDefinition[] {
+export function buildFragTools(resolveReadSession?: FragSessionResolver): ToolDefinition[] {
+  /**
+   * For read-only tools: prefer the live edit session; otherwise fall back to a
+   * transient session built from committed storage so validate/list/read/grep
+   * work outside an agent turn. Only throws if the project truly has no data.
+   */
+  function requireReadSession(projectId: unknown): FragSession {
+    if (typeof projectId !== 'string') throw new Error('projectId is required.');
+    const live = sessions.get(projectId);
+    if (live) return live;
+    const transient = resolveReadSession?.(projectId);
+    if (!transient) throw new Error(`No active edit session for project "${projectId}".`);
+    return transient;
+  }
+
+  /** Provenance note for read tools: this turn's staged edits vs the saved diagram. */
+  const source = (s: FragSession): 'session' | 'committed' => (s.committed ? 'committed' : 'session');
+
   return [
     {
       name: 'viz_frag_list',
@@ -96,8 +126,8 @@ export function buildFragTools(): ToolDefinition[] {
         properties: { projectId: { type: 'string' } },
       },
       execute: async (input) => {
-        const s = requireSession((input as { projectId?: unknown }).projectId);
-        return { engine: s.engine, fragments: summarizeFragments(s.fragments) };
+        const s = requireReadSession((input as { projectId?: unknown }).projectId);
+        return { engine: s.engine, fragments: summarizeFragments(s.fragments), source: source(s) };
       },
     },
     {
@@ -111,9 +141,9 @@ export function buildFragTools(): ToolDefinition[] {
       },
       execute: async (input) => {
         const args = input as { projectId?: unknown; name?: unknown };
-        const s = requireSession(args.projectId);
+        const s = requireReadSession(args.projectId);
         const f = findFragment(s, args.name);
-        return { name: f.name, source: f.source };
+        return { name: f.name, source: f.source, from: source(s) };
       },
     },
     {
@@ -137,13 +167,13 @@ export function buildFragTools(): ToolDefinition[] {
           regex?: unknown;
           caseSensitive?: unknown;
         };
-        const s = requireSession(args.projectId);
+        const s = requireReadSession(args.projectId);
         if (typeof args.pattern !== 'string' || !args.pattern) throw new Error('pattern is required.');
         const matches = grepFragments(s.fragments, args.pattern, {
           regex: args.regex === true,
           caseSensitive: args.caseSensitive === true,
         });
-        return { matchCount: matches.length, matches };
+        return { matchCount: matches.length, matches, source: source(s) };
       },
     },
     {
@@ -259,15 +289,15 @@ export function buildFragTools(): ToolDefinition[] {
     {
       name: 'viz_frag_validate',
       description:
-        'Validate the composed diagram (all fragments concatenated) with the mermaid/chartjs parser. Returns {valid: true} or {valid: false, error, line}. write/patch already return this automatically; use this tool to re-check after multiple edits or before finishing.',
+        'Validate the composed diagram (all fragments concatenated) with the mermaid/chartjs parser. Returns {valid: true} or {valid: false, error, line}, plus `source`: "session" (this turn\'s staged edits) or "committed" (the saved diagram, when no edit is in progress). write/patch already return this automatically; use this tool to re-check after multiple edits or before finishing.',
       inputSchema: {
         type: 'object',
         required: ['projectId'],
         properties: { projectId: { type: 'string' } },
       },
       execute: async (input) => {
-        const s = requireSession((input as { projectId?: unknown }).projectId);
-        return withHint(await validateSession(s));
+        const s = requireReadSession((input as { projectId?: unknown }).projectId);
+        return { ...withHint(await validateSession(s)), source: source(s) };
       },
     },
     {
