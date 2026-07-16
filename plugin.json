@@ -1,7 +1,7 @@
 {
   "name": "visualizations",
   "displayName": "Visualizations",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "AI-driven diagram & chart authoring. Generate and iterate on ERDs, architecture diagrams, flowcharts, and data charts through natural-language chat, rendered live with Mermaid and Chart.js.",
   "icon": {
     "lucide": "workflow"
