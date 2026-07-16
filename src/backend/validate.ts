@@ -4,10 +4,31 @@ export type ValidationResult =
   | { valid: true }
   | { valid: false; error: string; line?: number };
 
+/**
+ * Mermaid parses through DOMPurify, which needs a live DOM (`window`/`document`)
+ * to register its sanitizer hooks. The plugin backend runs in a DOM-less Node
+ * host, where `DOMPurify.addHook` is undefined and `mermaid.parse` throws
+ * "addHook is not a function" — a bogus "invalid diagram" that has nothing to do
+ * with the source. We can't supply a DOM here: jsdom can't be esbuild-bundled
+ * (dynamic requires) and the plugin ships as a self-contained bundle with no
+ * node_modules to externalize it into. So we only attempt real mermaid
+ * validation when a DOM already exists (e.g. an Electron renderer); in a
+ * headless host we skip it and treat the diagram as valid. Genuine syntax errors
+ * still surface at render time, which runs in a real browser window.
+ */
+function hasDom(): boolean {
+  const g = globalThis as { window?: unknown; document?: unknown };
+  return typeof g.window !== 'undefined' && typeof g.document !== 'undefined';
+}
+
 let mermaidParse: ((src: string) => Promise<unknown>) | null | undefined;
 
 async function getMermaidParse(): Promise<((src: string) => Promise<unknown>) | null> {
   if (mermaidParse !== undefined) return mermaidParse;
+  if (!hasDom()) {
+    mermaidParse = null;
+    return mermaidParse;
+  }
   try {
     const mod = await import('mermaid');
     const m = (mod as { default?: { initialize: (c: unknown) => void; parse: (s: string) => Promise<unknown> } })
