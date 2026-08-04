@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import mermaid from 'mermaid';
 import DOMPurify from 'dompurify';
 import { useDarkMode, parseVizHref } from '../hooks';
+import { normalizeLabelMarkup } from '../render-core';
 import type { MermaidCurve, MermaidLook } from '../../shared/types.js';
 
 type Props = {
@@ -248,7 +249,7 @@ export function MermaidRenderer({
 
     const renderId = `viz-${id}-${Math.random().toString(36).slice(2, 8)}`;
     mermaid
-      .render(renderId, source)
+      .render(renderId, normalizeLabelMarkup(source))
       .then(({ svg: out }) => {
         if (cancelled) return;
         let final = out;

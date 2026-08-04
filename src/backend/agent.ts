@@ -92,7 +92,7 @@ Chart.js: top-level \`"_links": {"<datasetIdx>.<pointIdx>": "viz://<projectId>#<
 ## Mermaid guidelines
 - Valid syntax only. Clear alphanumeric node ids (linkable).
 - Multi-line labels use \`<br/>\`, never \\n.
-- Avoid raw HTML in labels (renderer uses SVG text mode).
+- Emphasis in labels: use markdown \`**bold**\` and \`*italic*\` (the renderer uses SVG text mode). \`<b>\`/\`<i>\` are auto-converted, but there is no underline/strikethrough/font-size — don't rely on \`<u>\`, \`<s>\`, \`<small>\`, etc.
 
 If the user's message is a question that does not require changing the diagram, answer without calling write/patch tools.`;
 }

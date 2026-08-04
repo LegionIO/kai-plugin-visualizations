@@ -218,6 +218,39 @@ function stripInitDirectives(source: string): string {
 }
 
 /**
+ * We render mermaid with `htmlLabels:false` (see renderMermaidToSvg / the panel
+ * renderer), so labels become SVG `<text>`/`<tspan>`. In that mode mermaid only
+ * styles text from markdown emphasis tokens: `**bold**` → font-weight:bold,
+ * `*italic*` → font-style:italic. Raw HTML tags like `<b>`/`<i>` are NOT parsed
+ * into those tokens — they'd render as literal, unstyled text. So a user (or the
+ * agent) who writes `<b>Foo</b>` gets no bold at all.
+ *
+ * This rewrites the two HTML emphasis tags that DO have a markdown equivalent
+ * into that markdown so they render correctly. Only `<b>/<strong>` (→ bold) and
+ * `<i>/<em>` (→ italic) are converted; the SVG text path has no underline,
+ * strikethrough, or font-size styling, so tags like `<u>`/`<s>`/`<small>` are
+ * intentionally left untouched rather than faked.
+ *
+ * To avoid corrupting mermaid's structural syntax (arrows like `-->`, ids, etc.),
+ * the rewrite is confined to the inside of double-quoted label strings — the only
+ * place free text with markup legitimately appears. Nested tags collapse into
+ * combined markers (`<b><i>x</i></b>` → `***x***`).
+ */
+export function normalizeLabelMarkup(source: string): string {
+  const convert = (label: string): string =>
+    label
+      // Order matters: handle each tag family independently; markdown markers
+      // nest fine (mermaid's lexer treats `***x***` as bold+italic).
+      .replace(/<\s*(b|strong)\s*>([\s\S]*?)<\s*\/\s*\1\s*>/gi, '**$2**')
+      .replace(/<\s*(i|em)\s*>([\s\S]*?)<\s*\/\s*\1\s*>/gi, '*$2*');
+
+  // Rewrite only inside "double-quoted" spans. Mermaid escapes a literal quote
+  // inside a label as `#quot;`, not `\"`, so a bare `"` always ends the label —
+  // matching to the next `"` is correct and won't swallow across labels.
+  return source.replace(/"([^"]*)"/g, (_m, inner: string) => `"${convert(inner)}"`);
+}
+
+/**
  * Render mermaid source to a sanitized standalone SVG string. Throws on parse
  * error. When `embedBackground` is set, a solid background rect for the look is
  * inserted as the first child so the standalone SVG isn't transparent (dark/neo
@@ -253,7 +286,7 @@ export async function renderMermaidToSvg(
 
   const renderId = `viz-export-${Math.random().toString(36).slice(2, 10)}`;
   try {
-    const src = opts.lockStyle ? stripInitDirectives(source) : source;
+    const src = normalizeLabelMarkup(opts.lockStyle ? stripInitDirectives(source) : source);
     const { svg } = await mermaid.render(renderId, src);
     let final = svg;
     if (skin.injectDefs) {
