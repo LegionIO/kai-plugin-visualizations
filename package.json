@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "chart.js": "^4.4.3",
-    "dompurify": "^3.4.11",
+    "dompurify": "^3.4.13",
     "mermaid": "^11.4.1"
   },
   "devDependencies": {
